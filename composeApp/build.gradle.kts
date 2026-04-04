@@ -32,6 +32,10 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
+
+            // --- MOTOR OCR ANDROID ---
+            // Try version 4.7.0 which is the latest stable on Maven Central
+            implementation("cz.adaptech:tesseract4android:4.7.0")
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -42,7 +46,7 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
-            implementation(compose.materialIconsExtended)
+            implementation("org.jetbrains.compose.material:material-icons-extended:1.7.3")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -50,6 +54,10 @@ kotlin {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
+
+            // --- MOTOR OCR DESKTOP ---
+            // Tess4J folosește JNA pentru a accesa Tesseract binar
+            implementation("net.sourceforge.tess4j:tess4j:5.18.0")
         }
     }
 }
