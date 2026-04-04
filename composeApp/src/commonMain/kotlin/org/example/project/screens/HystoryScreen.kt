@@ -71,7 +71,10 @@ private val sampleHistory = listOf(
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 @Composable
-fun HistoryScreen(onSettingsClick: () -> Unit = {}) {
+fun HistoryScreen(
+    onSettingsClick: () -> Unit = {},
+    onNavigateToScan: () -> Unit = {}
+) {
     var historyList by remember { mutableStateOf(sampleHistory) }
     var selectedFilter by remember { mutableStateOf("All") }
     val filters = listOf("All", "Active", "Revoked")
@@ -129,7 +132,10 @@ fun HistoryScreen(onSettingsClick: () -> Unit = {}) {
                     }
                 }
             }
-            BottomNavBar(selected = "history")
+            BottomNavBar(
+                selected = "history",
+                onNavigateToScan = onNavigateToScan
+            )
         }
     }
 }
@@ -355,7 +361,10 @@ private fun AccessCard(entry: AccessEntry, onRevoke: () -> Unit) {
 
 // ─── Bottom Nav ───────────────────────────────────────────────────────────────
 @Composable
-fun BottomNavBar(selected: String) {
+fun BottomNavBar(
+    selected: String,
+    onNavigateToScan: () -> Unit = {}
+) {
     val items = listOf(Triple("history", "◷", "HISTORY"), Triple("scan", "⊙", "SCAN"), Triple("files", "⊟", "FILES"))
     Row(
         modifier = Modifier.fillMaxWidth()
@@ -367,7 +376,19 @@ fun BottomNavBar(selected: String) {
     ) {
         items.forEach { (id, icon, label) ->
             val isSelected = id == selected
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 20.dp)) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .padding(horizontal = 20.dp)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        if (id == "scan") {
+                            onNavigateToScan()
+                        }
+                    }
+            ) {
                 if (isSelected) {
                     Box(Modifier.size(width = 24.dp, height = 2.dp).background(
                         Brush.horizontalGradient(listOf(Color.Transparent, PurpleGlow, Color.Transparent)),
