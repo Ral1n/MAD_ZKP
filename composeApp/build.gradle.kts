@@ -26,8 +26,9 @@ kotlin {
             implementation("androidx.core:core:1.13.0")
 
             // --- MOTOR OCR ANDROID ---
-            // Try version 4.7.0 which is the latest stable on Maven Central
-            implementation("cz.adaptech:tesseract4android:4.7.0")
+            implementation("cz.adaptech:tesseract4android:4.7.0") {
+                exclude(group = "cz.adaptech.tesseract4android", module = "tesseract4android-openmp")
+            }
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)

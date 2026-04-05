@@ -4,10 +4,12 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 
 fun main() = application {
+    val tessDataPath = TessDataHelperDesktop.initTessData()
+
     Window(
         onCloseRequest = ::exitApplication,
         title = "MAD-ZKP",
     ) {
-        App()
+        App(tessDataPath = tessDataPath)
     }
 }

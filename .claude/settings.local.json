@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xxd \"C:/Users/Alin/IdeaProjects/MAD_ZKP/composeApp/src/androidMain/assets/tessdata/eng.traineddata\")"
+    ]
+  }
+}

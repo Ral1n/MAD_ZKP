@@ -11,9 +11,8 @@ actual class ScannerEngine actual constructor(private val tessDataPath: String) 
     actual suspend fun scanImage(imageBytes: ByteArray): String = withContext(Dispatchers.IO) {
         try {
             val tesseract = Tesseract().apply {
-                setDatapath(tessDataPath)
+                if (tessDataPath.isNotEmpty()) setDatapath(tessDataPath)
                 setLanguage("ron+eng")
-                // Optional: setăm DPI-ul dacă imaginile sunt scanări de telefon (ajută la acuratețe)
                 setVariable("user_defined_dpi", "300")
             }
 

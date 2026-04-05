@@ -27,8 +27,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.delay
 import org.example.project.theme.appColors
+import org.example.project.theme.appStrings
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MODEL
@@ -116,24 +120,27 @@ fun FilesScreen(
     onNavigateToHistory: () -> Unit = {},
     isDarkTheme: Boolean = true,
     onToggleTheme: () -> Unit = {},
-    repository: FilesRepository? = null
+    repository: FilesRepository? = null,
+    hasIdentityCard: Boolean = false
 ) {
     val c = appColors
+    val s = appStrings
 
     var filesList by remember { mutableStateOf(mockFiles) }
-    var selectedFilter by remember { mutableStateOf("Toate") }
-    val filters = listOf("Toate", "Încărcate", "În așteptare", "Aprobate")
+    var filterIndex by remember { mutableStateOf(0) }
+    var showBuletinDialog by remember { mutableStateOf(false) }
+    val filters = listOf(s.filesFilterAll, s.filesFilterUploaded, s.filesFilterWaiting, s.filesFilterApproved)
 
     // Decomentează când ai repository real:
     // LaunchedEffect(Unit) {
     //     repository?.getAllFiles()?.let { filesList = it }
     // }
 
-    val filtered = when (selectedFilter) {
-        "Încărcate"    -> filesList.filter { it.status == DocumentStatus.UPLOADED }
-        "În așteptare" -> filesList.filter { it.status == DocumentStatus.WAITING }
-        "Aprobate"     -> filesList.filter { it.status == DocumentStatus.APPROVED }
-        else           -> filesList
+    val filtered = when (filterIndex) {
+        1    -> filesList.filter { it.status == DocumentStatus.UPLOADED }
+        2    -> filesList.filter { it.status == DocumentStatus.WAITING }
+        3    -> filesList.filter { it.status == DocumentStatus.APPROVED }
+        else -> filesList
     }
 
     val infiniteTransition = rememberInfiniteTransition(label = "ambient")
@@ -165,11 +172,11 @@ fun FilesScreen(
 
             Spacer(Modifier.height(20.dp))
 
-            FilesFilterRow(filters, selectedFilter) { selectedFilter = it }
+            FilesFilterRow(filters, filterIndex) { filterIndex = it }
 
             Spacer(Modifier.height(14.dp))
 
-            if (filtered.isEmpty()) {
+            if (filtered.isEmpty() && !hasIdentityCard) {
                 EmptyState(modifier = Modifier.weight(1f))
             } else {
                 LazyColumn(
@@ -177,6 +184,11 @@ fun FilesScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     contentPadding = PaddingValues(bottom = 20.dp)
                 ) {
+                    if (hasIdentityCard) {
+                        item {
+                            BuletinCard(onClick = { showBuletinDialog = true })
+                        }
+                    }
                     itemsIndexed(filtered, key = { _, f -> f.id }) { index, file ->
                         var visible by remember { mutableStateOf(false) }
                         LaunchedEffect(file.id) { delay(index * 55L); visible = true }
@@ -188,13 +200,15 @@ fun FilesScreen(
                                 file     = file,
                                 onDelete = {
                                     filesList = filesList.filter { it.id != file.id }
-                                    // Cu repository real:
-                                    // coroutineScope.launch { repository?.deleteFile(file.id) }
                                 }
                             )
                         }
                     }
                 }
+            }
+
+            if (showBuletinDialog) {
+                BuletinDetailDialog(onDismiss = { showBuletinDialog = false })
             }
 
             // ── Bottom Nav cu navigare completă ──────────────────────────────
@@ -212,6 +226,7 @@ fun FilesScreen(
 @Composable
 private fun FilesTopBar(isDarkTheme: Boolean, onToggleTheme: () -> Unit) {
     val c = appColors
+    val s = appStrings
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -219,7 +234,7 @@ private fun FilesTopBar(isDarkTheme: Boolean, onToggleTheme: () -> Unit) {
         Spacer(Modifier.size(36.dp))
         Spacer(Modifier.weight(1f))
         Text(
-            text = "Files",
+            text = s.filesTitle,
             style = TextStyle(
                 brush = Brush.linearGradient(listOf(c.purpleGlow, c.purpleNeon)),
                 fontSize = 18.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp
@@ -246,6 +261,7 @@ private fun FilesTopBar(isDarkTheme: Boolean, onToggleTheme: () -> Unit) {
 @Composable
 private fun FilesHeroSection(totalCount: Int, approvedCount: Int) {
     val c = appColors
+    val s = appStrings
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { delay(80); visible = true }
 
@@ -255,7 +271,7 @@ private fun FilesHeroSection(totalCount: Int, approvedCount: Int) {
     ) {
         Column(modifier = Modifier.padding(horizontal = 24.dp)) {
             Text(
-                text = "documentele",
+                text = s.filesHero1,
                 style = TextStyle(
                     brush = Brush.linearGradient(listOf(c.silverText, c.heroGradientEnd)),
                     fontSize = 34.sp, fontWeight = FontWeight.Bold,
@@ -263,7 +279,7 @@ private fun FilesHeroSection(totalCount: Int, approvedCount: Int) {
                 )
             )
             Text(
-                text = "tale sigure",
+                text = s.filesHero2,
                 style = TextStyle(
                     brush = Brush.linearGradient(listOf(c.purpleGlow, c.purpleNeon)),
                     fontSize = 34.sp, fontWeight = FontWeight.Bold,
@@ -272,9 +288,9 @@ private fun FilesHeroSection(totalCount: Int, approvedCount: Int) {
             )
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                StatChip(label = "Total",    value = "$totalCount",    color = c.purpleNeon)
-                StatChip(label = "Aprobate", value = "$approvedCount", color = c.emeraldGlow)
-                StatChip(label = "Criptate", value = "100%",           color = c.goldShine)
+                StatChip(label = "Total",         value = "$totalCount",    color = c.purpleNeon)
+                StatChip(label = s.statApproved,  value = "$approvedCount", color = c.emeraldGlow)
+                StatChip(label = s.statEncrypted, value = "100%",           color = c.goldShine)
             }
         }
     }
@@ -303,7 +319,7 @@ private fun StatChip(label: String, value: String, color: Color) {
 // FILTER ROW
 // ─────────────────────────────────────────────────────────────────────────────
 @Composable
-private fun FilesFilterRow(filters: List<String>, selected: String, onSelect: (String) -> Unit) {
+private fun FilesFilterRow(filters: List<String>, selectedIndex: Int, onSelect: (Int) -> Unit) {
     val c = appColors
     androidx.compose.foundation.lazy.LazyRow(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
@@ -311,7 +327,7 @@ private fun FilesFilterRow(filters: List<String>, selected: String, onSelect: (S
     ) {
         items(filters.size) { index ->
             val filter = filters[index]
-            val isSelected = filter == selected
+            val isSelected = index == selectedIndex
             val bg by animateColorAsState(
                 if (isSelected) c.purpleCore else c.surface, tween(220), label = "filter_bg"
             )
@@ -320,7 +336,7 @@ private fun FilesFilterRow(filters: List<String>, selected: String, onSelect: (S
                     .drawBehind {
                         if (!isSelected) drawRoundRect(c.glassBorder, cornerRadius = CornerRadius(24.dp.toPx()), style = Stroke(1f))
                     }
-                    .clickable(remember { MutableInteractionSource() }, null) { onSelect(filter) }
+                    .clickable(remember { MutableInteractionSource() }, null) { onSelect(index) }
                     .padding(horizontal = 18.dp, vertical = 8.dp)
             ) {
                 Text(
@@ -341,6 +357,7 @@ private fun FilesFilterRow(filters: List<String>, selected: String, onSelect: (S
 @Composable
 private fun DocumentCard(file: DocumentFile, onDelete: () -> Unit) {
     val c = appColors
+    val s = appStrings
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
     val statusColor = when (file.status) {
@@ -349,9 +366,9 @@ private fun DocumentCard(file: DocumentFile, onDelete: () -> Unit) {
         DocumentStatus.UPLOADED -> c.purpleNeon
     }
     val statusLabel = when (file.status) {
-        DocumentStatus.APPROVED -> "Aprobat"
-        DocumentStatus.WAITING  -> "În așteptare"
-        DocumentStatus.UPLOADED -> "Încărcat"
+        DocumentStatus.APPROVED -> s.statusApproved
+        DocumentStatus.WAITING  -> s.statusWaiting
+        DocumentStatus.UPLOADED -> s.statusUploaded
     }
     val statusIcon = when (file.status) {
         DocumentStatus.APPROVED -> "✓"
@@ -484,13 +501,13 @@ private fun DocumentCard(file: DocumentFile, onDelete: () -> Unit) {
                                             showDeleteConfirm = false; onDelete()
                                         }
                                         .padding(horizontal = 8.dp, vertical = 5.dp)
-                                ) { Text("Da", color = c.crimsonGlow, fontSize = 10.sp, fontWeight = FontWeight.Bold) }
+                                ) { Text(s.confirmYes, color = c.crimsonGlow, fontSize = 10.sp, fontWeight = FontWeight.Bold) }
 
                                 Box(
                                     Modifier.clip(RoundedCornerShape(8.dp)).background(c.glassWhite)
                                         .clickable(remember { MutableInteractionSource() }, null) { showDeleteConfirm = false }
                                         .padding(horizontal = 8.dp, vertical = 5.dp)
-                                ) { Text("Nu", color = c.dimText, fontSize = 10.sp) }
+                                ) { Text(s.confirmNo, color = c.dimText, fontSize = 10.sp) }
                             }
                         } else {
                             Box(
@@ -566,11 +583,227 @@ private fun DocumentCard(file: DocumentFile, onDelete: () -> Unit) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// BULETIN CARD
+// ─────────────────────────────────────────────────────────────────────────────
+@Composable
+private fun BuletinCard(onClick: () -> Unit) {
+    val c = appColors
+    val s = appStrings
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(
+                Brush.linearGradient(
+                    listOf(c.emeraldGlow.copy(alpha = 0.10f), c.purpleDim.copy(alpha = 0.60f))
+                )
+            )
+            .drawBehind {
+                drawRoundRect(
+                    color        = c.emeraldGlow.copy(alpha = 0.40f),
+                    cornerRadius = CornerRadius(18.dp.toPx()),
+                    style        = Stroke(1.5f)
+                )
+                drawLine(
+                    color       = c.emeraldGlow.copy(alpha = 0.75f),
+                    start       = Offset(0f, 20.dp.toPx()),
+                    end         = Offset(0f, size.height - 20.dp.toPx()),
+                    strokeWidth = 3.dp.toPx(),
+                    cap         = StrokeCap.Round
+                )
+            }
+            .clickable(remember { MutableInteractionSource() }, null) { onClick() }
+            .padding(start = 16.dp, end = 14.dp, top = 14.dp, bottom = 14.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(c.emeraldGlow.copy(alpha = 0.15f))
+                    .drawBehind {
+                        drawRoundRect(c.emeraldGlow.copy(alpha = 0.35f), cornerRadius = CornerRadius(14.dp.toPx()), style = Stroke(1f))
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text("ID", color = c.emeraldGlow, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold)
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(s.buletinTitle, color = c.silverText, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(3.dp))
+                Text(s.buletinSubtitle, color = c.dimText, fontSize = 12.sp)
+            }
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(c.emeraldGlow.copy(alpha = 0.12f))
+                    .drawBehind {
+                        drawRoundRect(c.emeraldGlow.copy(alpha = 0.3f), cornerRadius = CornerRadius(10.dp.toPx()), style = Stroke(1f))
+                    }
+                    .padding(horizontal = 8.dp, vertical = 5.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("✓", fontSize = 10.sp, color = c.emeraldGlow)
+                    Text(s.buletinVerified, color = c.emeraldGlow, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BULETIN DETAIL DIALOG
+// ─────────────────────────────────────────────────────────────────────────────
+@Composable
+private fun BuletinDetailDialog(onDismiss: () -> Unit) {
+    val c = appColors
+    val s = appStrings
+    val clipboardManager = LocalClipboardManager.current
+    var generatedKey by remember { mutableStateOf<String?>(null) }
+    var copied by remember { mutableStateOf(false) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(c.surface)
+                .drawBehind {
+                    drawRoundRect(
+                        color        = c.emeraldGlow.copy(alpha = 0.35f),
+                        cornerRadius = CornerRadius(24.dp.toPx()),
+                        style        = Stroke(1.5f)
+                    )
+                }
+                .padding(28.dp)
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(CircleShape)
+                        .background(c.emeraldGlow.copy(alpha = 0.12f))
+                        .drawBehind { drawCircle(c.emeraldGlow.copy(alpha = 0.35f), style = Stroke(1.5f)) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("✓", fontSize = 28.sp, color = c.emeraldGlow, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(20.dp))
+                Text(
+                    s.idVerifiedTitle,
+                    color      = c.silverText,
+                    fontSize   = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign  = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    s.idVerifiedSubtitle,
+                    color      = c.dimText,
+                    fontSize   = 13.sp,
+                    textAlign  = androidx.compose.ui.text.style.TextAlign.Center,
+                    lineHeight = 19.sp
+                )
+                Spacer(Modifier.height(24.dp))
+
+                // Generated key display
+                if (generatedKey != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(c.background)
+                            .drawBehind {
+                                drawRoundRect(c.purpleGlow.copy(alpha = 0.25f), cornerRadius = CornerRadius(12.dp.toPx()), style = Stroke(1f))
+                            }
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            generatedKey!!,
+                            color      = c.purpleNeon,
+                            fontSize   = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                if (copied) c.emeraldGlow.copy(alpha = 0.15f) else c.glassWhite
+                            )
+                            .drawBehind {
+                                drawRoundRect(
+                                    if (copied) c.emeraldGlow.copy(alpha = 0.4f) else c.glassBorder,
+                                    cornerRadius = CornerRadius(12.dp.toPx()),
+                                    style        = Stroke(1f)
+                                )
+                            }
+                            .clickable(remember { MutableInteractionSource() }, null) {
+                                clipboardManager.setText(AnnotatedString(generatedKey!!))
+                                copied = true
+                            }
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            if (copied) "✓  ${s.copiedLabel}" else s.copyKeyBtn,
+                            color      = if (copied) c.emeraldGlow else c.dimText,
+                            fontSize   = 13.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    Spacer(Modifier.height(10.dp))
+                } else {
+                    // Generate key button
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Brush.horizontalGradient(listOf(c.goldShine, c.goldShine.copy(alpha = 0.78f))))
+                            .clickable(remember { MutableInteractionSource() }, null) {
+                                generatedKey = generateMockKey()
+                            }
+                            .padding(vertical = 14.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(s.generateKeyBtn, color = Color(0xFF1A0F00), fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
+                    }
+                    Spacer(Modifier.height(10.dp))
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(c.glassWhite)
+                        .clickable(remember { MutableInteractionSource() }, null) { onDismiss() }
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(s.closeBtn, color = c.dimText, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                }
+            }
+        }
+    }
+}
+
+private fun generateMockKey(): String {
+    val chars = "0123456789ABCDEF"
+    fun seg(n: Int) = (1..n).map { chars[kotlin.random.Random.nextInt(chars.length)] }.joinToString("")
+    return "ZKP-${seg(8)}-${seg(4)}-${seg(4)}-${seg(12)}"
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // EMPTY STATE
 // ─────────────────────────────────────────────────────────────────────────────
 @Composable
 private fun EmptyState(modifier: Modifier = Modifier) {
     val c = appColors
+    val s = appStrings
     Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Box(
@@ -580,9 +813,9 @@ private fun EmptyState(modifier: Modifier = Modifier) {
                 contentAlignment = Alignment.Center
             ) { Text("⊟", fontSize = 32.sp, color = c.purpleNeon) }
             Spacer(Modifier.height(16.dp))
-            Text("Niciun document găsit", color = c.silverText, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            Text(s.emptyTitle, color = c.silverText, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(4.dp))
-            Text("Încearcă alt filtru sau încarcă un fișier", color = c.dimText, fontSize = 13.sp)
+            Text(s.emptySubtitle, color = c.dimText, fontSize = 13.sp)
         }
     }
 }
@@ -596,13 +829,14 @@ private fun FilesBottomNav(
     onNavigateToHistory: () -> Unit
 ) {
     val c = appColors
+    val s = appStrings
 
     data class NavItem(val id: String, val icon: String, val label: String)
 
     val items = listOf(
-        NavItem("history", "◷", "HISTORY"),
-        NavItem("scan",    "⊙", "SCAN"),
-        NavItem("files",   "⊟", "FILES")
+        NavItem("history", "◷", s.navHistory),
+        NavItem("scan",    "⊙", s.navScan),
+        NavItem("files",   "⊟", s.navFiles)
     )
 
     Row(

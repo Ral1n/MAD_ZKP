@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import org.example.project.theme.appColors
+import org.example.project.theme.appStrings
 
 // ─── Model ────────────────────────────────────────────────────────────────────
 data class AccessEntry(
@@ -62,14 +63,15 @@ fun HistoryScreen(
     onToggleTheme: () -> Unit = {}
 ) {
     val c = appColors
+    val s = appStrings
     var historyList by remember { mutableStateOf(sampleHistory) }
-    var selectedFilter by remember { mutableStateOf("All") }
-    val filters = listOf("All", "Active", "Revoked")
+    var filterIndex by remember { mutableStateOf(0) }
+    val filters = listOf(s.filterAll, s.filterActive, s.filterRevoked)
 
-    val filtered = when (selectedFilter) {
-        "Active"  -> historyList.filter { !it.isRevoked }
-        "Revoked" -> historyList.filter { it.isRevoked }
-        else      -> historyList
+    val filtered = when (filterIndex) {
+        1    -> historyList.filter { !it.isRevoked }
+        2    -> historyList.filter { it.isRevoked }
+        else -> historyList
     }
 
     val infiniteTransition = rememberInfiniteTransition(label = "ambient")
@@ -100,7 +102,7 @@ fun HistoryScreen(
             )
             HeroSection()
             Spacer(Modifier.height(24.dp))
-            FilterRow(filters, selectedFilter) { selectedFilter = it }
+            FilterRow(filters, filterIndex) { filterIndex = it }
             Spacer(Modifier.height(14.dp))
             LazyColumn(
                 modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 16.dp),
@@ -149,7 +151,7 @@ private fun HeaderBar(
 
         // ── CENTRU: titlu ─────────────────────────────────────────────────────
         Text(
-            text = "History",
+            text = appStrings.historyTitle,
             style = TextStyle(
                 brush = Brush.linearGradient(listOf(c.purpleGlow, c.purpleNeon)),
                 fontSize = 18.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp
@@ -181,6 +183,7 @@ private fun HeaderBar(
 @Composable
 private fun HeroSection() {
     val c = appColors
+    val s = appStrings
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { delay(80); visible = true }
     AnimatedVisibility(
@@ -189,7 +192,7 @@ private fun HeroSection() {
     ) {
         Column(modifier = Modifier.padding(horizontal = 24.dp)) {
             Text(
-                text = "who used",
+                text = s.historyHero1,
                 style = TextStyle(
                     brush = Brush.linearGradient(listOf(c.silverText, c.heroGradientEnd)),
                     fontSize = 34.sp, fontWeight = FontWeight.Bold,
@@ -197,7 +200,7 @@ private fun HeroSection() {
                 )
             )
             Text(
-                text = "your keys",
+                text = s.historyHero2,
                 style = TextStyle(
                     brush = Brush.linearGradient(listOf(c.purpleGlow, c.purpleNeon)),
                     fontSize = 34.sp, fontWeight = FontWeight.Bold,
@@ -212,7 +215,7 @@ private fun HeroSection() {
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = "audit trail complet · end-to-end encrypted",
+                    text = s.historySubtitle,
                     color = c.goldShine, fontSize = 11.sp,
                     fontWeight = FontWeight.Medium, letterSpacing = 0.4.sp
                 )
@@ -223,15 +226,15 @@ private fun HeroSection() {
 
 // ─── Filters ──────────────────────────────────────────────────────────────────
 @Composable
-private fun FilterRow(filters: List<String>, selected: String, onSelect: (String) -> Unit) {
+private fun FilterRow(filters: List<String>, selectedIndex: Int, onSelect: (Int) -> Unit) {
     val c = appColors
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        filters.forEach { filter ->
-            val isSelected = filter == selected
+        filters.forEachIndexed { index, filter ->
+            val isSelected = index == selectedIndex
             val bg by animateColorAsState(
                 if (isSelected) c.purpleCore else c.surface, tween(220), label = "f"
             )
@@ -240,7 +243,7 @@ private fun FilterRow(filters: List<String>, selected: String, onSelect: (String
                     .drawBehind {
                         if (!isSelected) drawRoundRect(c.glassBorder, cornerRadius = CornerRadius(24.dp.toPx()), style = Stroke(1f))
                     }
-                    .clickable(remember { MutableInteractionSource() }, null) { onSelect(filter) }
+                    .clickable(remember { MutableInteractionSource() }, null) { onSelect(index) }
                     .padding(horizontal = 18.dp, vertical = 8.dp)
             ) {
                 Text(
@@ -260,6 +263,7 @@ private fun FilterRow(filters: List<String>, selected: String, onSelect: (String
 @Composable
 private fun AccessCard(entry: AccessEntry, onRevoke: () -> Unit) {
     val c = appColors
+    val s = appStrings
     var showConfirm by remember { mutableStateOf(false) }
 
     val infiniteTransition = rememberInfiniteTransition(label = "pulse_${entry.id}")
@@ -357,7 +361,7 @@ private fun AccessCard(entry: AccessEntry, onRevoke: () -> Unit) {
                             drawRoundRect(c.crimsonGlow.copy(alpha = 0.25f), cornerRadius = CornerRadius(10.dp.toPx()), style = Stroke(1f))
                         }
                         .padding(horizontal = 10.dp, vertical = 7.dp)
-                ) { Text("Revocat", color = c.crimsonGlow, fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
+                ) { Text(s.revokedBadge, color = c.crimsonGlow, fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
             } else {
                 AnimatedContent(
                     showConfirm,
@@ -376,13 +380,13 @@ private fun AccessCard(entry: AccessEntry, onRevoke: () -> Unit) {
                                         showConfirm = false; onRevoke()
                                     }
                                     .padding(horizontal = 10.dp, vertical = 7.dp)
-                            ) { Text("Da", color = c.crimsonGlow, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                            ) { Text(s.confirmYes, color = c.crimsonGlow, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
 
                             Box(
                                 Modifier.clip(RoundedCornerShape(10.dp)).background(c.glassWhite)
                                     .clickable(remember { MutableInteractionSource() }, null) { showConfirm = false }
                                     .padding(horizontal = 10.dp, vertical = 7.dp)
-                            ) { Text("Nu", color = c.dimText, fontSize = 11.sp) }
+                            ) { Text(s.confirmNo, color = c.dimText, fontSize = 11.sp) }
                         }
                     } else {
                         Box(
@@ -392,7 +396,7 @@ private fun AccessCard(entry: AccessEntry, onRevoke: () -> Unit) {
                                 }
                                 .clickable(remember { MutableInteractionSource() }, null) { showConfirm = true }
                                 .padding(horizontal = 10.dp, vertical = 7.dp)
-                        ) { Text("Revocă", color = c.purpleNeon, fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
+                        ) { Text(s.revokeBtn, color = c.purpleNeon, fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
                     }
                 }
             }
@@ -407,10 +411,11 @@ fun BottomNavBar(
     onNavigateToScan: () -> Unit = {}
 ) {
     val c = appColors
+    val s = appStrings
     val items = listOf(
-        Triple("history", "◷", "HISTORY"),
-        Triple("scan",    "⊙", "SCAN"),
-        Triple("files",   "⊟", "FILES")
+        Triple("history", "◷", s.navHistory),
+        Triple("scan",    "⊙", s.navScan),
+        Triple("files",   "⊟", s.navFiles)
     )
     Row(
         modifier = Modifier.fillMaxWidth()

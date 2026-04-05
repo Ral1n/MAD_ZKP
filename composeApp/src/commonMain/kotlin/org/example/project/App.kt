@@ -8,14 +8,25 @@ import org.example.project.screens.FilesScreen
 import org.example.project.screens.HistoryScreen
 import org.example.project.screens.HomeScreen
 import org.example.project.screens.LoginScreen
+import org.example.project.screens.ProfileScreen
 import org.example.project.theme.AppTheme
 
 @Composable
-fun App() {
-    val navController = rememberNavController()
-    var isDarkTheme by remember { mutableStateOf(true) }
+fun App(tessDataPath: String = "") {
+    val navController   = rememberNavController()
+    var isDarkTheme     by remember { mutableStateOf(true) }
+    var hasIdentityCard by remember { mutableStateOf(false) }
+    var appLanguage     by remember { mutableStateOf(AppLanguage.ENGLISH) }
 
-    AppTheme(isDark = isDarkTheme) {
+    // Detect country on first launch and set language
+    LaunchedEffect(Unit) {
+        val country = detectCountryCode()
+        if (country.equals("RO", ignoreCase = true)) {
+            appLanguage = AppLanguage.ROMANIAN
+        }
+    }
+
+    AppTheme(isDark = isDarkTheme, language = appLanguage) {
         NavHost(
             navController = navController,
             startDestination = "login"
@@ -31,10 +42,13 @@ fun App() {
             }
             composable("home") {
                 HomeScreen(
-                    onNavigateToHistory = { navController.navigate("history") },
-                    onNavigateToFiles   = { navController.navigate("files") },
-                    isDarkTheme         = isDarkTheme,
-                    onToggleTheme       = { isDarkTheme = !isDarkTheme }
+                    onNavigateToHistory    = { navController.navigate("history") },
+                    onNavigateToFiles      = { navController.navigate("files") },
+                    onNavigateToProfile    = { navController.navigate("profile") },
+                    isDarkTheme            = isDarkTheme,
+                    onToggleTheme          = { isDarkTheme = !isDarkTheme },
+                    tessDataPath           = tessDataPath,
+                    onIdentityCardDetected = { hasIdentityCard = true }
                 )
             }
             composable("history") {
@@ -50,7 +64,21 @@ fun App() {
                     onNavigateToHistory = { navController.navigate("history") },
                     isDarkTheme         = isDarkTheme,
                     onToggleTheme       = { isDarkTheme = !isDarkTheme },
-                    repository          = null
+                    repository          = null,
+                    hasIdentityCard     = hasIdentityCard
+                )
+            }
+            composable("profile") {
+                ProfileScreen(
+                    onBack           = { navController.popBackStack() },
+                    onLogout         = {
+                        hasIdentityCard = false
+                        navController.navigate("login") {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    currentLanguage  = appLanguage,
+                    onLanguageChange = { appLanguage = it }
                 )
             }
         }

@@ -16,7 +16,7 @@ class MainActivity : ComponentActivity() {
         val tessDataPath = TessDataHelper.initTessData(this)
 
         setContent {
-            App()
+            App(tessDataPath = tessDataPath)
         }
     }
 }
