@@ -32,9 +32,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import org.example.project.ScannerEngine
+import org.example.project.dropFileTarget
 import org.example.project.isDesktop
 import org.example.project.theme.appColors
+import org.example.project.theme.appStrings
 
 // ─── HomeScreen ───────────────────────────────────────────────────────────────
 @Composable
@@ -42,13 +47,37 @@ fun HomeScreen(
     onNavigateToHistory: () -> Unit = {},
     onNavigateToFiles: () -> Unit = {},
     isDarkTheme: Boolean = true,
-    onToggleTheme: () -> Unit = {}
+    onToggleTheme: () -> Unit = {},
+    tessDataPath: String = "",
+    onIdentityCardDetected: () -> Unit = {},
+    onNavigateToProfile: () -> Unit = {}
 ) {
     val c = appColors
+    val scope = rememberCoroutineScope()
+    var isScanning by remember { mutableStateOf(false) }
+    var showIdentityDialog by remember { mutableStateOf(false) }
 
-    val openCamera  = rememberCameraLauncher  { _ -> }
-    val openGallery = rememberGalleryLauncher { _ -> }
-    val openFiles   = rememberFileLauncher    { _ -> }
+    val idKeywords = listOf("IDENTITY CARD", "CARTE DE IDENTITATE", "IDENTITATE", "IDENTITY", "CARTE")
+
+    fun processBytes(bytes: ByteArray?) {
+        if (bytes != null && (tessDataPath.isNotEmpty() || isDesktop)) {
+            isScanning = true
+            scope.launch {
+                val text = ScannerEngine(tessDataPath).scanImage(bytes)
+                println("OCR_RESULT: $text")
+                isScanning = false
+                val upper = text.uppercase()
+                if (idKeywords.any { upper.contains(it) }) {
+                    onIdentityCardDetected()
+                    showIdentityDialog = true
+                }
+            }
+        }
+    }
+
+    val openCamera  = rememberCameraLauncher { bytes -> processBytes(bytes) }
+    val openGallery = rememberGalleryLauncher { bytes -> processBytes(bytes) }
+    val openFiles   = rememberFileLauncher    { bytes -> processBytes(bytes) }
 
     val infiniteTransition = rememberInfiniteTransition(label = "ambient")
 
@@ -100,12 +129,13 @@ fun HomeScreen(
         )
 
         Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
-            HomeTopBar(isDarkTheme = isDarkTheme, onToggleTheme = onToggleTheme)
+            HomeTopBar(isDarkTheme = isDarkTheme, onToggleTheme = onToggleTheme, onProfile = onNavigateToProfile)
 
             if (isDesktop) {
                 DesktopHomeCenter(
                     modifier          = Modifier.weight(1f).fillMaxWidth(),
                     onUploadClick     = { openFiles() },
+                    onFileDrop        = { bytes -> processBytes(bytes) },
                     orbitRotation     = orbitRotation,
                     orbitRotationSlow = orbitRotationSlow
                 )
@@ -128,7 +158,7 @@ fun HomeScreen(
                             .padding(horizontal = 16.dp, vertical = 5.dp)
                     ) {
                         Text(
-                            "QUICK SCAN",
+                            appStrings.quickScan,
                             color         = Color(0xFF1A0F00),
                             fontSize      = 11.sp,
                             fontWeight    = FontWeight.ExtraBold,
@@ -141,21 +171,123 @@ fun HomeScreen(
 
             HomeBottomNav(selected = "scan", onHistory = onNavigateToHistory, onFiles = onNavigateToFiles)
         }
+
+        if (isScanning) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.6f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color       = c.purpleNeon,
+                    strokeWidth = 4.dp,
+                    modifier    = Modifier.size(64.dp)
+                )
+            }
+        }
+    }
+
+    if (showIdentityDialog) {
+        IdentityCardVerifiedDialog(onDismiss = { showIdentityDialog = false })
+    }
+}
+
+// ─── Identity Card Verified Dialog ───────────────────────────────────────────
+@Composable
+private fun IdentityCardVerifiedDialog(onDismiss: () -> Unit) {
+    val c = appColors
+    val s = appStrings
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(c.surface)
+                .drawBehind {
+                    drawRoundRect(
+                        color        = c.emeraldGlow.copy(alpha = 0.35f),
+                        cornerRadius = CornerRadius(24.dp.toPx()),
+                        style        = Stroke(1.5f)
+                    )
+                }
+                .padding(28.dp)
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(CircleShape)
+                        .background(c.emeraldGlow.copy(alpha = 0.12f))
+                        .drawBehind { drawCircle(c.emeraldGlow.copy(alpha = 0.35f), style = Stroke(1.5f)) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("✓", fontSize = 28.sp, color = c.emeraldGlow, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(20.dp))
+                Text(
+                    s.idVerifiedTitle,
+                    color      = c.silverText,
+                    fontSize   = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign  = TextAlign.Center
+                )
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    s.idVerifiedSubtitle,
+                    color     = c.dimText,
+                    fontSize  = 13.sp,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 19.sp
+                )
+                Spacer(Modifier.height(28.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Brush.horizontalGradient(listOf(c.purpleCore, c.purpleBright.copy(alpha = 0.9f))))
+                        .clickable(remember { MutableInteractionSource() }, null) { onDismiss() }
+                        .padding(vertical = 14.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(s.gotIt, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
     }
 }
 
 // ─── Top Bar ──────────────────────────────────────────────────────────────────
 @Composable
-private fun HomeTopBar(isDarkTheme: Boolean, onToggleTheme: () -> Unit) {
+private fun HomeTopBar(isDarkTheme: Boolean, onToggleTheme: () -> Unit, onProfile: () -> Unit) {
     val c = appColors
     Row(
         modifier          = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Spacer(Modifier.size(36.dp))
+        // Profile icon — left corner
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(listOf(c.purpleCore.copy(alpha = 0.7f), c.purpleDim))
+                )
+                .drawBehind {
+                    drawCircle(
+                        brush  = Brush.sweepGradient(listOf(c.purpleGlow.copy(alpha = 0.6f), c.goldShine.copy(alpha = 0.3f), c.purpleGlow.copy(alpha = 0.6f))),
+                        radius = size.minDimension / 2 - 1.dp.toPx(),
+                        style  = Stroke(1.5f)
+                    )
+                }
+                .clickable(remember { MutableInteractionSource() }, null) { onProfile() },
+            contentAlignment = Alignment.Center
+        ) {
+            Text("A", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        }
         Spacer(Modifier.weight(1f))
         Text(
-            "Scanner",
+            appStrings.scannerTitle,
             style = TextStyle(
                 brush         = Brush.linearGradient(listOf(c.purpleGlow, c.purpleNeon)),
                 fontSize      = 18.sp,
@@ -164,6 +296,7 @@ private fun HomeTopBar(isDarkTheme: Boolean, onToggleTheme: () -> Unit) {
             )
         )
         Spacer(Modifier.weight(1f))
+        // Theme toggle — right corner
         Box(
             modifier = Modifier
                 .size(36.dp)
@@ -184,6 +317,7 @@ private fun HomeTopBar(isDarkTheme: Boolean, onToggleTheme: () -> Unit) {
 @Composable
 private fun HomeHero() {
     val c = appColors
+    val s = appStrings
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { delay(80); visible = true }
 
@@ -196,7 +330,7 @@ private fun HomeHero() {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text      = "skip unnecessary\nsharing with us",
+                text      = s.heroText,
                 style     = TextStyle(
                     brush      = Brush.linearGradient(listOf(c.silverText, c.heroGradientEnd)),
                     fontSize   = 28.sp,
@@ -213,7 +347,7 @@ private fun HomeHero() {
                         .background(Brush.horizontalGradient(listOf(Color.Transparent, c.goldShine)))
                 )
                 Spacer(Modifier.width(8.dp))
-                Text("end to end encryption", color = c.goldShine, fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp)
+                Text(s.heroSubtitle, color = c.goldShine, fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp)
                 Spacer(Modifier.width(8.dp))
                 Box(
                     Modifier.size(width = 16.dp, height = 1.dp)
@@ -229,11 +363,25 @@ private fun HomeHero() {
 private fun DesktopHomeCenter(
     modifier: Modifier = Modifier,
     onUploadClick: () -> Unit,
+    onFileDrop: (ByteArray) -> Unit,
     orbitRotation: Float,
     orbitRotationSlow: Float
 ) {
     val c = appColors
-    BoxWithConstraints(modifier.fillMaxSize()) {
+    var isDragOver by remember { mutableStateOf(false) }
+    val dragBorderAlpha by animateFloatAsState(
+        targetValue   = if (isDragOver) 0.9f else 0f,
+        animationSpec = tween(200),
+        label         = "drag_border"
+    )
+
+    BoxWithConstraints(
+        modifier.fillMaxSize()
+            .dropFileTarget(
+                onDrop        = onFileDrop,
+                onHoverChange = { isDragOver = it }
+            )
+    ) {
         // REGULA: maxWidth se foloseste EXCLUSIV in interiorul acestui bloc BoxWithConstraints.
         // Valorile calculate sunt pasate mai departe ca parametri simpli (Dp, Float, Boolean).
         val shortest          = if (maxWidth < maxHeight) maxWidth else maxHeight
@@ -311,6 +459,38 @@ private fun DesktopHomeCenter(
                     onClick  = onUploadClick
                 )
             }
+
+            // Drag-over overlay
+            if (dragBorderAlpha > 0f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(c.purpleGlow.copy(alpha = 0.07f * dragBorderAlpha))
+                        .drawBehind {
+                            drawRoundRect(
+                                color        = c.purpleNeon.copy(alpha = 0.7f * dragBorderAlpha),
+                                cornerRadius = CornerRadius(24.dp.toPx()),
+                                style        = Stroke(
+                                    width      = 2.dp.toPx(),
+                                    pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(14f, 10f), 0f)
+                                )
+                            )
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("↓", fontSize = 40.sp, color = c.purpleNeon.copy(alpha = dragBorderAlpha), fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            appStrings.dropToScan,
+                            color         = c.purpleNeon.copy(alpha = dragBorderAlpha),
+                            fontSize      = 16.sp,
+                            fontWeight    = FontWeight.SemiBold,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -326,6 +506,7 @@ private fun UploadCard(modifier: Modifier = Modifier, onClick: () -> Unit) {
 @Composable
 private fun UploadCardMobile(modifier: Modifier = Modifier, onClick: () -> Unit) {
     val c = appColors
+    val s = appStrings
     var hovered by remember { mutableStateOf(false) }
     val borderAlpha by animateFloatAsState(
         targetValue   = if (hovered) 0.6f else 0.3f,
@@ -366,9 +547,9 @@ private fun UploadCardMobile(modifier: Modifier = Modifier, onClick: () -> Unit)
                 Text("↑", fontSize = 22.sp, color = c.purpleNeon, fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.height(14.dp))
-            Text("UPLOAD A FILE", color = c.silverText, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 2.sp)
+            Text(s.uploadTitle, color = c.silverText, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 2.sp)
             Spacer(Modifier.height(4.dp))
-            Text("Drag and drop or browse gallery", color = c.dimText, fontSize = 13.sp)
+            Text(s.uploadSubtitleMobile, color = c.dimText, fontSize = 13.sp)
         }
     }
 }
@@ -508,9 +689,10 @@ private fun UploadIcon(size: Dp, corner: Dp, fontSize: TextUnit) {
 @Composable
 private fun UploadTitleBlock(titleSize: TextUnit, bodySize: TextUnit, compact: Boolean) {
     val c     = appColors
+    val s     = appStrings
     val align = if (compact) TextAlign.Center else TextAlign.Start
     Text(
-        "UPLOAD A FILE",
+        s.uploadTitle,
         style = TextStyle(
             brush         = Brush.linearGradient(listOf(c.silverText, c.heroGradientEnd)),
             fontSize      = titleSize,
@@ -521,7 +703,7 @@ private fun UploadTitleBlock(titleSize: TextUnit, bodySize: TextUnit, compact: B
     )
     Spacer(Modifier.height(if (compact) 6.dp else 8.dp))
     Text(
-        "Drag & drop here, or click anywhere to browse",
+        s.uploadSubtitleDesktop,
         color      = c.dimText,
         fontSize   = bodySize,
         lineHeight = bodySize * 1.35f,
@@ -549,7 +731,7 @@ private fun BrowseButton(compact: Boolean, modifier: Modifier = Modifier) {
             .padding(horizontal = 32.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text("Browse", color = Color(0xFF1A0F00), fontSize = if (compact) 12.sp else 14.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.7.sp)
+        Text(appStrings.browseBtn, color = Color(0xFF1A0F00), fontSize = if (compact) 12.sp else 14.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.7.sp)
     }
 }
 
@@ -573,7 +755,7 @@ private fun ScanCard(modifier: Modifier = Modifier, pulseScale: Float, onClick: 
                 ScanFrame(alpha = pulseScale)
             }
             Spacer(Modifier.height(16.dp))
-            Text("SCAN", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 4.sp)
+            Text(appStrings.navScan, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 4.sp)
         }
     }
 }
@@ -613,12 +795,13 @@ private fun ScanFrame(alpha: Float) {
 @Composable
 private fun HomeBottomNav(selected: String, onHistory: () -> Unit, onFiles: () -> Unit) {
     val c = appColors
+    val s = appStrings
     data class NavItem(val id: String, val icon: String, val label: String, val onClick: () -> Unit)
 
     val items = listOf(
-        NavItem("history", "◷", "HISTORY", onHistory),
-        NavItem("scan",    "⊙", "SCAN",    {}),
-        NavItem("files",   "⊟", "FILES",   onFiles),
+        NavItem("history", "◷", s.navHistory, onHistory),
+        NavItem("scan",    "⊙", s.navScan,    {}),
+        NavItem("files",   "⊟", s.navFiles,   onFiles),
     )
 
     Row(

@@ -23,6 +23,12 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.core.ktx)
+            implementation("androidx.core:core:1.13.0")
+
+            // --- MOTOR OCR ANDROID ---
+            implementation("cz.adaptech:tesseract4android:4.7.0") {
+                exclude(group = "cz.adaptech.tesseract4android", module = "tesseract4android-openmp")
+            }
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -39,6 +45,8 @@ kotlin {
             // Pune asta:
             implementation("org.jetbrains.androidx.navigation:navigation-compose:2.9.0-beta01")
 
+            implementation("org.jetbrains.compose.material:material-icons-extended:1.7.3")
+            implementation("com.ionspin.kotlin:bignum:0.3.9")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -46,6 +54,10 @@ kotlin {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
+
+            // --- MOTOR OCR DESKTOP ---
+            // Tess4J folosește JNA pentru a accesa Tesseract binar
+            implementation("net.sourceforge.tess4j:tess4j:5.18.0")
         }
     }
 }

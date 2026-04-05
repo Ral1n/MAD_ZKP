@@ -97,11 +97,9 @@ data class AppColors(
 )
 
 // ─── CompositionLocal ─────────────────────────────────────────────────────────
-val LocalAppColors = compositionLocalOf {
-    buildColors(isDark = true)
-}
-
+val LocalAppColors = compositionLocalOf { buildColors(isDark = true) }
 val LocalIsDarkTheme = compositionLocalOf { true }
+val LocalAppStrings = compositionLocalOf { org.example.project.buildStrings(org.example.project.AppLanguage.ENGLISH) }
 
 fun buildColors(isDark: Boolean): AppColors {
     return if (isDark) {
@@ -171,12 +169,15 @@ fun buildColors(isDark: Boolean): AppColors {
 @Composable
 fun AppTheme(
     isDark: Boolean,
+    language: org.example.project.AppLanguage = org.example.project.AppLanguage.ENGLISH,
     content: @Composable () -> Unit
 ) {
-    val colors = buildColors(isDark)
+    val colors  = buildColors(isDark)
+    val strings = org.example.project.buildStrings(language)
     CompositionLocalProvider(
-        LocalAppColors provides colors,
-        LocalIsDarkTheme provides isDark
+        LocalAppColors   provides colors,
+        LocalIsDarkTheme provides isDark,
+        LocalAppStrings  provides strings
     ) {
         content()
     }
@@ -185,3 +186,6 @@ fun AppTheme(
 // ─── Shortcut ─────────────────────────────────────────────────────────────────
 val appColors: AppColors
     @Composable get() = LocalAppColors.current
+
+val appStrings: org.example.project.AppStrings
+    @Composable get() = LocalAppStrings.current

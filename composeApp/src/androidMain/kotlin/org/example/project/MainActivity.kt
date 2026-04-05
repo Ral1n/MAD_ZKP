@@ -12,8 +12,11 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
+        // Inițializăm datele pentru Tesseract
+        val tessDataPath = TessDataHelper.initTessData(this)
+
         setContent {
-            App()
+            App(tessDataPath = tessDataPath)
         }
     }
 }
