@@ -28,22 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
-
-// ─── Paleta ───────────────────────────────────────────────────────────────────
-private val Void         = Color(0xFF060608)
-private val NightSurface = Color(0xFF12121C)
-private val GlassWhite   = Color(0x0FFFFFFF)
-private val GlassBorder  = Color(0x18FFFFFF)
-private val PurpleCore   = Color(0xFF7C3AED)
-private val PurpleGlow   = Color(0xFF9F67FF)
-private val PurpleNeon   = Color(0xFFBF9FFF)
-private val PurpleDim    = Color(0xFF2D1B5E)
-private val CrimsonGlow  = Color(0xFFE53935)
-private val EmeraldGlow  = Color(0xFF10B981)
-private val GoldShine    = Color(0xFFFFBD2E)
-private val SilverText   = Color(0xFFE2E2F0)
-private val DimText      = Color(0xFF6B6B8A)
-private val GhostText    = Color(0xFF35354A)
+import org.example.project.theme.appColors
 
 // ─── Model ────────────────────────────────────────────────────────────────────
 data class AccessEntry(
@@ -54,7 +39,7 @@ data class AccessEntry(
     val keyId: String,
     val accessedAt: String,
     val isRevoked: Boolean = false,
-    val accentColor: Color = PurpleCore,
+    val accentColor: Color = Color(0xFF7C3AED),
     val usageCount: Int = 1
 )
 
@@ -72,9 +57,11 @@ private val sampleHistory = listOf(
 // ─── Screen ───────────────────────────────────────────────────────────────────
 @Composable
 fun HistoryScreen(
-    onSettingsClick: () -> Unit = {},
-    onNavigateToScan: () -> Unit = {}
+    onNavigateToScan: () -> Unit = {},
+    isDarkTheme: Boolean = true,
+    onToggleTheme: () -> Unit = {}
 ) {
+    val c = appColors
     var historyList by remember { mutableStateOf(sampleHistory) }
     var selectedFilter by remember { mutableStateOf("All") }
     val filters = listOf("All", "Active", "Revoked")
@@ -92,22 +79,25 @@ fun HistoryScreen(
         label = "ambient_alpha"
     )
 
-    Box(modifier = Modifier.fillMaxSize().background(Void)) {
+    Box(modifier = Modifier.fillMaxSize().background(c.background)) {
         // Ambient glow blobs
         Box(
             modifier = Modifier.size(320.dp).offset(x = (-90).dp, y = 50.dp)
                 .blur(130.dp)
-                .background(PurpleCore.copy(alpha = ambientAlpha), CircleShape)
+                .background(c.ambientBlob1.copy(alpha = ambientAlpha), CircleShape)
         )
         Box(
             modifier = Modifier.size(220.dp).align(Alignment.BottomEnd)
                 .offset(x = 70.dp, y = (-80).dp)
                 .blur(110.dp)
-                .background(Color(0xFF1A0A4E).copy(alpha = ambientAlpha * 1.6f), CircleShape)
+                .background(c.ambientBlob2.copy(alpha = ambientAlpha * 1.6f), CircleShape)
         )
 
         Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
-            HeaderBar(onSettingsClick)
+            HeaderBar(
+                isDarkTheme   = isDarkTheme,
+                onToggleTheme = onToggleTheme
+            )
             HeroSection()
             Spacer(Modifier.height(24.dp))
             FilterRow(filters, selectedFilter) { selectedFilter = it }
@@ -133,7 +123,7 @@ fun HistoryScreen(
                 }
             }
             BottomNavBar(
-                selected = "history",
+                selected        = "history",
                 onNavigateToScan = onNavigateToScan
             )
         }
@@ -141,48 +131,67 @@ fun HistoryScreen(
 }
 
 // ─── Header ───────────────────────────────────────────────────────────────────
+// Burger menu eliminat. Butonul ⚙ face toggle theme.
 @Composable
-private fun HeaderBar(onSettingsClick: () -> Unit) {
+private fun HeaderBar(
+    isDarkTheme: Boolean,
+    onToggleTheme: () -> Unit
+) {
+    val c = appColors
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Box(Modifier.size(width = 22.dp, height = 2.dp).background(PurpleGlow, RoundedCornerShape(1.dp)))
-            Box(Modifier.size(width = 15.dp, height = 2.dp).background(PurpleNeon.copy(alpha = 0.5f), RoundedCornerShape(1.dp)))
-        }
+        // ── STÂNGA: gol (burger eliminat) ─────────────────────────────────────
+        Spacer(Modifier.size(36.dp))
+
         Spacer(Modifier.weight(1f))
+
+        // ── CENTRU: titlu ─────────────────────────────────────────────────────
         Text(
             text = "History",
             style = TextStyle(
-                brush = Brush.linearGradient(listOf(PurpleGlow, PurpleNeon)),
+                brush = Brush.linearGradient(listOf(c.purpleGlow, c.purpleNeon)),
                 fontSize = 18.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp
             )
         )
+
         Spacer(Modifier.weight(1f))
+
+        // ── DREAPTA: toggle dark/light ─────────────────────────────────────────
         Box(
             modifier = Modifier.size(36.dp).clip(RoundedCornerShape(10.dp))
-                .background(GlassWhite)
+                .background(c.glassWhite)
                 .drawBehind {
-                    drawRoundRect(GlassBorder, cornerRadius = CornerRadius(10.dp.toPx()), style = Stroke(1f))
+                    drawRoundRect(c.glassBorder, cornerRadius = CornerRadius(10.dp.toPx()), style = Stroke(1f))
                 }
-                .clickable(remember { MutableInteractionSource() }, null) { onSettingsClick() },
+                .clickable(remember { MutableInteractionSource() }, null) { onToggleTheme() },
             contentAlignment = Alignment.Center
-        ) { Text("⚙", fontSize = 16.sp, color = PurpleNeon) }
+        ) {
+            Text(
+                if (isDarkTheme) "☀" else "🌙",
+                fontSize = 16.sp,
+                color = c.purpleNeon
+            )
+        }
     }
 }
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 @Composable
 private fun HeroSection() {
+    val c = appColors
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { delay(80); visible = true }
-    AnimatedVisibility(visible, enter = fadeIn(tween(700)) + slideInVertically(tween(700, easing = EaseOutQuart)) { -30 }) {
+    AnimatedVisibility(
+        visible,
+        enter = fadeIn(tween(700)) + slideInVertically(tween(700, easing = EaseOutQuart)) { -30 }
+    ) {
         Column(modifier = Modifier.padding(horizontal = 24.dp)) {
             Text(
                 text = "who used",
                 style = TextStyle(
-                    brush = Brush.linearGradient(listOf(Color.White, Color(0xFFCCBBFF))),
+                    brush = Brush.linearGradient(listOf(c.silverText, c.heroGradientEnd)),
                     fontSize = 34.sp, fontWeight = FontWeight.Bold,
                     fontStyle = FontStyle.Italic, lineHeight = 40.sp
                 )
@@ -190,19 +199,21 @@ private fun HeroSection() {
             Text(
                 text = "your keys",
                 style = TextStyle(
-                    brush = Brush.linearGradient(listOf(PurpleGlow, PurpleNeon)),
+                    brush = Brush.linearGradient(listOf(c.purpleGlow, c.purpleNeon)),
                     fontSize = 34.sp, fontWeight = FontWeight.Bold,
                     fontStyle = FontStyle.Italic, lineHeight = 40.sp
                 )
             )
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(width = 18.dp, height = 1.dp)
-                    .background(Brush.horizontalGradient(listOf(Color.Transparent, GoldShine))))
+                Box(
+                    Modifier.size(width = 18.dp, height = 1.dp)
+                        .background(Brush.horizontalGradient(listOf(Color.Transparent, c.goldShine)))
+                )
                 Spacer(Modifier.width(8.dp))
                 Text(
                     text = "audit trail complet · end-to-end encrypted",
-                    color = GoldShine, fontSize = 11.sp,
+                    color = c.goldShine, fontSize = 11.sp,
                     fontWeight = FontWeight.Medium, letterSpacing = 0.4.sp
                 )
             }
@@ -213,6 +224,7 @@ private fun HeroSection() {
 // ─── Filters ──────────────────────────────────────────────────────────────────
 @Composable
 private fun FilterRow(filters: List<String>, selected: String, onSelect: (String) -> Unit) {
+    val c = appColors
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -221,19 +233,19 @@ private fun FilterRow(filters: List<String>, selected: String, onSelect: (String
         filters.forEach { filter ->
             val isSelected = filter == selected
             val bg by animateColorAsState(
-                if (isSelected) PurpleCore else NightSurface, tween(220), label = "f"
+                if (isSelected) c.purpleCore else c.surface, tween(220), label = "f"
             )
             Box(
                 modifier = Modifier.clip(RoundedCornerShape(24.dp)).background(bg)
                     .drawBehind {
-                        if (!isSelected) drawRoundRect(GlassBorder, cornerRadius = CornerRadius(24.dp.toPx()), style = Stroke(1f))
+                        if (!isSelected) drawRoundRect(c.glassBorder, cornerRadius = CornerRadius(24.dp.toPx()), style = Stroke(1f))
                     }
                     .clickable(remember { MutableInteractionSource() }, null) { onSelect(filter) }
                     .padding(horizontal = 18.dp, vertical = 8.dp)
             ) {
                 Text(
                     filter,
-                    color = if (isSelected) Color.White else DimText,
+                    color = if (isSelected) Color.White else c.dimText,
                     fontSize = 13.sp,
                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                     letterSpacing = 0.3.sp
@@ -247,6 +259,7 @@ private fun FilterRow(filters: List<String>, selected: String, onSelect: (String
 // ─── Card ─────────────────────────────────────────────────────────────────────
 @Composable
 private fun AccessCard(entry: AccessEntry, onRevoke: () -> Unit) {
+    val c = appColors
     var showConfirm by remember { mutableStateOf(false) }
 
     val infiniteTransition = rememberInfiniteTransition(label = "pulse_${entry.id}")
@@ -258,9 +271,13 @@ private fun AccessCard(entry: AccessEntry, onRevoke: () -> Unit) {
 
     Box(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp))
-            .background(NightSurface)
+            .background(c.surface)
             .drawBehind {
-                drawRoundRect(entry.accentColor.copy(alpha = 0.14f), cornerRadius = CornerRadius(18.dp.toPx()), style = Stroke(1f))
+                drawRoundRect(
+                    entry.accentColor.copy(alpha = 0.14f),
+                    cornerRadius = CornerRadius(18.dp.toPx()),
+                    style = Stroke(1f)
+                )
                 drawLine(
                     color = entry.accentColor.copy(alpha = if (entry.isRevoked) 0.3f else 0.75f),
                     start = Offset(0f, 20.dp.toPx()),
@@ -277,10 +294,12 @@ private fun AccessCard(entry: AccessEntry, onRevoke: () -> Unit) {
             // Avatar
             Box(
                 modifier = Modifier.size(48.dp).clip(RoundedCornerShape(14.dp))
-                    .background(Brush.radialGradient(listOf(
-                        entry.accentColor.copy(alpha = 0.3f),
-                        entry.accentColor.copy(alpha = 0.07f)
-                    )))
+                    .background(
+                        Brush.radialGradient(listOf(
+                            entry.accentColor.copy(alpha = 0.3f),
+                            entry.accentColor.copy(alpha = 0.07f)
+                        ))
+                    )
                     .drawBehind {
                         drawRoundRect(entry.accentColor.copy(alpha = 0.3f), cornerRadius = CornerRadius(14.dp.toPx()), style = Stroke(1f))
                     },
@@ -294,29 +313,38 @@ private fun AccessCard(entry: AccessEntry, onRevoke: () -> Unit) {
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        entry.appName, color = SilverText, fontSize = 15.sp,
+                        entry.appName, color = c.silverText, fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold, maxLines = 1,
                         overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, false)
                     )
                     if (entry.usageCount > 1) {
                         Spacer(Modifier.width(6.dp))
-                        Box(Modifier.clip(RoundedCornerShape(6.dp)).background(PurpleDim).padding(horizontal = 6.dp, vertical = 2.dp)) {
-                            Text("×${entry.usageCount}", color = PurpleNeon, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Box(
+                            Modifier.clip(RoundedCornerShape(6.dp))
+                                .background(c.purpleDim)
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text("×${entry.usageCount}", color = c.purpleNeon, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
                 Spacer(Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    val dotColor = if (entry.isRevoked) CrimsonGlow else EmeraldGlow
-                    Box(Modifier.size(7.dp).clip(CircleShape)
-                        .background(if (!entry.isRevoked) dotColor.copy(alpha = pulseAlpha) else dotColor))
+                    val dotColor = if (entry.isRevoked) c.crimsonGlow else c.emeraldGlow
+                    Box(
+                        Modifier.size(7.dp).clip(CircleShape)
+                            .background(if (!entry.isRevoked) dotColor.copy(alpha = pulseAlpha) else dotColor)
+                    )
                     Spacer(Modifier.width(6.dp))
-                    Text(entry.documentType, color = PurpleNeon, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-                    Text(" · ", color = GhostText, fontSize = 12.sp)
-                    Text(entry.accessedAt, color = DimText, fontSize = 12.sp)
+                    Text(entry.documentType, color = c.purpleNeon, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                    Text(" · ", color = c.ghostText, fontSize = 12.sp)
+                    Text(entry.accessedAt, color = c.dimText, fontSize = 12.sp)
                 }
                 Spacer(Modifier.height(3.dp))
-                Text("cheie ${entry.keyId}", color = GhostText, fontSize = 10.sp, letterSpacing = 0.3.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    "cheie ${entry.keyId}", color = c.ghostText, fontSize = 10.sp,
+                    letterSpacing = 0.3.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                )
             }
 
             Spacer(Modifier.width(10.dp))
@@ -324,34 +352,47 @@ private fun AccessCard(entry: AccessEntry, onRevoke: () -> Unit) {
             if (entry.isRevoked) {
                 Box(
                     Modifier.clip(RoundedCornerShape(10.dp))
-                        .background(CrimsonGlow.copy(alpha = 0.1f))
-                        .drawBehind { drawRoundRect(CrimsonGlow.copy(alpha = 0.25f), cornerRadius = CornerRadius(10.dp.toPx()), style = Stroke(1f)) }
+                        .background(c.crimsonGlow.copy(alpha = 0.1f))
+                        .drawBehind {
+                            drawRoundRect(c.crimsonGlow.copy(alpha = 0.25f), cornerRadius = CornerRadius(10.dp.toPx()), style = Stroke(1f))
+                        }
                         .padding(horizontal = 10.dp, vertical = 7.dp)
-                ) { Text("Revocat", color = CrimsonGlow, fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
+                ) { Text("Revocat", color = c.crimsonGlow, fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
             } else {
-                AnimatedContent(showConfirm, transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(200)) }, label = "action") { confirming ->
+                AnimatedContent(
+                    showConfirm,
+                    transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(200)) },
+                    label = "action"
+                ) { confirming ->
                     if (confirming) {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Box(
                                 Modifier.clip(RoundedCornerShape(10.dp))
-                                    .background(CrimsonGlow.copy(alpha = 0.14f))
-                                    .drawBehind { drawRoundRect(CrimsonGlow.copy(alpha = 0.4f), cornerRadius = CornerRadius(10.dp.toPx()), style = Stroke(1f)) }
-                                    .clickable(remember { MutableInteractionSource() }, null) { showConfirm = false; onRevoke() }
+                                    .background(c.crimsonGlow.copy(alpha = 0.14f))
+                                    .drawBehind {
+                                        drawRoundRect(c.crimsonGlow.copy(alpha = 0.4f), cornerRadius = CornerRadius(10.dp.toPx()), style = Stroke(1f))
+                                    }
+                                    .clickable(remember { MutableInteractionSource() }, null) {
+                                        showConfirm = false; onRevoke()
+                                    }
                                     .padding(horizontal = 10.dp, vertical = 7.dp)
-                            ) { Text("Da", color = CrimsonGlow, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                            ) { Text("Da", color = c.crimsonGlow, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+
                             Box(
-                                Modifier.clip(RoundedCornerShape(10.dp)).background(GlassWhite)
+                                Modifier.clip(RoundedCornerShape(10.dp)).background(c.glassWhite)
                                     .clickable(remember { MutableInteractionSource() }, null) { showConfirm = false }
                                     .padding(horizontal = 10.dp, vertical = 7.dp)
-                            ) { Text("Nu", color = DimText, fontSize = 11.sp) }
+                            ) { Text("Nu", color = c.dimText, fontSize = 11.sp) }
                         }
                     } else {
                         Box(
-                            Modifier.clip(RoundedCornerShape(10.dp)).background(PurpleDim)
-                                .drawBehind { drawRoundRect(PurpleCore.copy(alpha = 0.4f), cornerRadius = CornerRadius(10.dp.toPx()), style = Stroke(1f)) }
+                            Modifier.clip(RoundedCornerShape(10.dp)).background(c.purpleDim)
+                                .drawBehind {
+                                    drawRoundRect(c.purpleCore.copy(alpha = 0.4f), cornerRadius = CornerRadius(10.dp.toPx()), style = Stroke(1f))
+                                }
                                 .clickable(remember { MutableInteractionSource() }, null) { showConfirm = true }
                                 .padding(horizontal = 10.dp, vertical = 7.dp)
-                        ) { Text("Revocă", color = PurpleNeon, fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
+                        ) { Text("Revocă", color = c.purpleNeon, fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
                     }
                 }
             }
@@ -365,12 +406,19 @@ fun BottomNavBar(
     selected: String,
     onNavigateToScan: () -> Unit = {}
 ) {
-    val items = listOf(Triple("history", "◷", "HISTORY"), Triple("scan", "⊙", "SCAN"), Triple("files", "⊟", "FILES"))
+    val c = appColors
+    val items = listOf(
+        Triple("history", "◷", "HISTORY"),
+        Triple("scan",    "⊙", "SCAN"),
+        Triple("files",   "⊟", "FILES")
+    )
     Row(
         modifier = Modifier.fillMaxWidth()
             .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-            .background(NightSurface)
-            .drawBehind { drawLine(GlassBorder, Offset(0f, 0f), Offset(size.width, 0f), 1f) }
+            .background(c.navBarBg)
+            .drawBehind {
+                drawLine(c.navBorderLine, Offset(0f, 0f), Offset(size.width, 0f), 1f)
+            }
             .padding(vertical = 14.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
@@ -378,32 +426,31 @@ fun BottomNavBar(
             val isSelected = id == selected
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .padding(horizontal = 20.dp)
+                modifier = Modifier.padding(horizontal = 20.dp)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
                     ) {
-                        if (id == "scan") {
-                            onNavigateToScan()
-                        }
+                        if (id == "scan") onNavigateToScan()
                     }
             ) {
                 if (isSelected) {
-                    Box(Modifier.size(width = 24.dp, height = 2.dp).background(
-                        Brush.horizontalGradient(listOf(Color.Transparent, PurpleGlow, Color.Transparent)),
-                        RoundedCornerShape(1.dp)
-                    ))
+                    Box(
+                        Modifier.size(width = 24.dp, height = 2.dp).background(
+                            Brush.horizontalGradient(listOf(Color.Transparent, c.purpleGlow, Color.Transparent)),
+                            RoundedCornerShape(1.dp)
+                        )
+                    )
                     Spacer(Modifier.height(4.dp))
                 } else {
                     Spacer(Modifier.height(6.dp))
                 }
-                Text(icon, fontSize = 22.sp, color = if (isSelected) PurpleGlow else DimText)
+                Text(icon, fontSize = 22.sp, color = if (isSelected) c.purpleGlow else c.dimText)
                 Spacer(Modifier.height(3.dp))
                 Text(
                     label, fontSize = 9.sp, letterSpacing = 1.2.sp,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                    color = if (isSelected) PurpleNeon else DimText
+                    color = if (isSelected) c.purpleNeon else c.dimText
                 )
             }
         }

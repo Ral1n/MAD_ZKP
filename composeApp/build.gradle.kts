@@ -41,6 +41,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation("org.jetbrains.compose.material:material-icons-extended:1.7.3")
+            implementation("com.ionspin.kotlin:bignum:0.3.9")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
