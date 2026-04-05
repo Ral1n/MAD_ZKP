@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalFocusManager
@@ -33,7 +34,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
-import org.example.project.AppStrings
 
 // ─── Hardcoded credentials ────────────────────────────────────────────────────
 private const val VALID_EMAIL    = "admin@zkp.ro"
@@ -42,14 +42,12 @@ private const val VALID_PASSWORD = "password123"
 // ─── Palette (shared with HistoryScreen) ─────────────────────────────────────
 private val Void         = Color(0xFF060608)
 private val NightSurface = Color(0xFF12121C)
-private val GlassWhite   = Color(0x0FFFFFFF)
 private val GlassBorder  = Color(0x18FFFFFF)
 private val PurpleCore   = Color(0xFF7C3AED)
 private val PurpleGlow   = Color(0xFF9F67FF)
 private val PurpleNeon   = Color(0xFFBF9FFF)
 private val PurpleDim    = Color(0xFF2D1B5E)
 private val CrimsonGlow  = Color(0xFFE53935)
-private val EmeraldGlow  = Color(0xFF10B981)
 private val GoldShine    = Color(0xFFFFBD2E)
 private val SilverText   = Color(0xFFE2E2F0)
 private val DimText      = Color(0xFF6B6B8A)
@@ -60,8 +58,6 @@ private val GhostText    = Color(0xFF35354A)
 fun LoginScreen(
     onLoginSuccess: () -> Unit = {}    // → navigates to ScanScreen from Launchers.kt
 ) {
-    val s = AppStrings.current          // reactive strings (EN or RO)
-
     var email          by remember { mutableStateOf("") }
     var password       by remember { mutableStateOf("") }
     var passwordHidden by remember { mutableStateOf(true) }
@@ -130,7 +126,7 @@ fun LoginScreen(
             Spacer(Modifier.height(24.dp))
 
             // ── Hero text ────────────────────────────────────────────────
-            HeroSection(line1 = s.loginHeroLine1, line2 = s.loginHeroLine2, subtitle = s.loginSubtitle)
+            HeroSection(line1 = "secure", line2 = "your keys", subtitle = "zero-knowledge vault · end-to-end encrypted")
 
             Spacer(Modifier.height(36.dp))
 
@@ -138,10 +134,10 @@ fun LoginScreen(
             ZkpTextField(
                 value          = email,
                 onValueChange  = { email = it; emailError = false },
-                label          = s.loginEmailLabel,
-                hint           = s.loginEmailHint,
+                label          = "Email",
+                hint           = "your@email.com",
                 isError        = emailError,
-                errorMessage   = s.loginErrEmail,
+                errorMessage   = "Invalid email address",
                 leadingIcon    = "✉",
                 keyboardType   = KeyboardType.Email,
                 imeAction      = ImeAction.Next,
@@ -154,10 +150,10 @@ fun LoginScreen(
             ZkpTextField(
                 value          = password,
                 onValueChange  = { password = it; passError = false },
-                label          = s.loginPasswordLabel,
-                hint           = s.loginPasswordHint,
+                label          = "Password",
+                hint           = "••••••••",
                 isError        = passError,
-                errorMessage   = s.loginErrPassword,
+                errorMessage   = "Incorrect password",
                 leadingIcon    = "⬡",
                 keyboardType   = KeyboardType.Password,
                 imeAction      = ImeAction.Done,
@@ -172,7 +168,7 @@ fun LoginScreen(
 
             // ── Forgot password ──────────────────────────────────────────
             Text(
-                text = s.loginForgotPassword,
+                text = "Forgot password?",
                 color = PurpleNeon,
                 fontSize = 11.sp,
                 modifier = Modifier
@@ -209,11 +205,11 @@ fun LoginScreen(
                             ) {
                                 Text("✓", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
-                            Text(s.loginSuccess, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Access granted", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                         }
                     } else {
                         Text(
-                            text = s.loginButton,
+                            text = "Sign in",
                             color = Color.White, fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold, letterSpacing = 0.5.sp
                         )
@@ -227,7 +223,7 @@ fun LoginScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.weight(1f).height(1.dp).background(GhostText))
                 Text(
-                    text = s.loginOrDivider,
+                    text = "OR CONTINUE WITH",
                     color = GhostText, fontSize = 10.sp,
                     letterSpacing = 0.5.sp,
                     modifier = Modifier.padding(horizontal = 12.dp)
@@ -256,7 +252,7 @@ fun LoginScreen(
                 ) {
                     // Fingerprint icon (CSS circles approximation)
                     BiometricIcon()
-                    Text(s.loginBiometric, color = DimText, fontSize = 13.sp)
+                    Text("Biometric login", color = DimText, fontSize = 13.sp)
                 }
             }
         }
@@ -348,10 +344,10 @@ private fun ZkpTextField(
                     // Left accent line
                     drawLine(
                         color = accentLineColor.copy(alpha = if (isError) 0.9f else 0.6f),
-                        start = androidx.compose.ui.geometry.Offset(0f, 16.dp.toPx()),
-                        end   = androidx.compose.ui.geometry.Offset(0f, size.height - 16.dp.toPx()),
+                        start = Offset(0f, 16.dp.toPx()),
+                        end   = Offset(0f, size.height - 16.dp.toPx()),
                         strokeWidth = 3.dp.toPx(),
-                        cap   = androidx.compose.ui.graphics.StrokeCap.Round
+                        cap   = StrokeCap.Round
                     )
                 }
                 .padding(horizontal = 14.dp, vertical = 14.dp),
