@@ -37,8 +37,8 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
-private const val VALID_EMAIL    = "admin@zkp.ro"
-private const val VALID_PASSWORD = "password123"
+private const val VALID_EMAIL    = "admin@vauch.ro"
+private const val VALID_PASSWORD = "123"
 
 private val Void        = Color(0xFF060608)
 private val NightSurf   = Color(0xFF0D0D16)
@@ -185,7 +185,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit = {}) {
         }
 
         // Corner tag
-        Text("ZKP-VAULT", Modifier.align(Alignment.TopEnd).padding(top=20.dp, end=20.dp),
+        Text("VAUCH", Modifier.align(Alignment.TopEnd).padding(top=20.dp, end=20.dp),
             color=PurpleCore.copy(alpha=0.5f), fontSize=9.sp, fontWeight=FontWeight.Bold, letterSpacing=1.5.sp)
 
         // ── Centered card — max 420dp, works on any screen size ──────────────
@@ -249,18 +249,18 @@ private fun CardContent(
 
         AnimatedVisibility(vis, enter=fadeIn(tween(700,80))+slideInVertically(tween(700,80,EaseOutQuart)){-28}) {
             Column {
-                Text("secure", style=TextStyle(
+                Text("Vouch", style=TextStyle(
                     brush=Brush.linearGradient(listOf(Color.White,Color(0xFFCCBBFF))),
                     fontSize=38.sp, fontWeight=FontWeight.Bold, fontStyle=FontStyle.Italic, lineHeight=42.sp))
-                Text("your keys", style=TextStyle(
+                Text("let us ______ for you", style=TextStyle(
                     brush=Brush.linearGradient(listOf(PurpleGlow,PurpleNeon)),
-                    fontSize=38.sp, fontWeight=FontWeight.ExtraBold, fontStyle=FontStyle.Italic, lineHeight=42.sp))
+                    fontSize=28.sp, fontWeight=FontWeight.ExtraBold, fontStyle=FontStyle.Italic, lineHeight=42.sp))
                 Spacer(Modifier.height(10.dp))
                 Row(verticalAlignment=Alignment.CenterVertically) {
                     Box(Modifier.size(width=20.dp,height=1.dp)
                         .background(Brush.horizontalGradient(listOf(Color.Transparent,GoldShine))))
                     Spacer(Modifier.width(8.dp))
-                    Text("zero-knowledge vault · e2e encrypted",
+                    Text("zero knowledge proof",
                         color=GoldShine, fontSize=10.sp, fontWeight=FontWeight.Medium, letterSpacing=0.6.sp)
                 }
             }
