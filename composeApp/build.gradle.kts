@@ -16,8 +16,6 @@ kotlin {
         }
     }
 
-    // AM ELIMINAT SECTIUNEA iosArm64 SI iosSimulatorArm64 DE AICI
-
     jvm()
 
     sourceSets {
@@ -38,8 +36,13 @@ kotlin {
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
             implementation(libs.compose.uiToolingPreview)
+            implementation(libs.ionspin.bignum)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+            // Add the missing navigation dependency
+            // În commonMain.dependencies
+            implementation("org.jetbrains.androidx.navigation:navigation-compose:2.8.0-alpha10")
+
             implementation("org.jetbrains.compose.material:material-icons-extended:1.7.3")
             implementation("com.ionspin.kotlin:bignum:0.3.9")
         }
