@@ -91,7 +91,6 @@ fun LoginScreen(
             onLoginSuccess()
         }
     }
-
     Box(modifier = Modifier.fillMaxSize().background(Void)) {
 
         // ── Ambient glow blobs ───────────────────────────────────────────
@@ -258,9 +257,7 @@ fun LoginScreen(
         }
 
         // ── Bottom nav (same as HistoryScreen) ───────────────────────────
-        Box(modifier = Modifier.align(Alignment.BottomCenter)) {
-            BottomNavBar(selected = "scan")
-        }
+        // Removed BottomNavBar from LoginScreen
     }
 }
 
