@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
-    alias(libs.plugins.composeHotReload)
+   // alias(libs.plugins.composeHotReload)
 }
 
 kotlin {
@@ -36,7 +36,8 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
             // Add the missing navigation dependency
             // În commonMain.dependencies
-            implementation("org.jetbrains.androidx.navigation:navigation-compose:2.8.0-alpha10")
+            // Pune asta:
+            implementation("org.jetbrains.androidx.navigation:navigation-compose:2.9.0-beta01")
 
         }
         commonTest.dependencies {
